@@ -176,7 +176,7 @@ def train_d(net, data, fc, ratio, label, data_rf):
     """Train function of discriminator"""
     criteria = nn.CrossEntropyLoss()
     if data_rf == "real" :
-        features, [rec_all, rec_small, rec_part], part, pred = net(data, data_rf="real")
+        features, [rec_all, rec_small, rec_part], part, _ = net(data, data_rf="real")
         # print(data.size())
         # print(data_rf)
         # print(summary(net,[data, data_rf]))
@@ -191,16 +191,22 @@ def train_d(net, data, fc, ratio, label, data_rf):
         ISDALoss_1 = ISDALoss(feature_num,class_num)
         isda_aug_y = ISDALoss_1.isda_aug(fc, features, y, label, Covariance.detach(), ratio)
         loss_aug = criteria(isda_aug_y, label)
-        loss = loss_aug + F.relu(torch.rand_like(pred) * 0.2 + 0.8 - pred).mean() +\
+        # loss = loss_aug + F.relu(torch.rand_like(pred) * 0.2 + 0.8 - pred).mean() +\
+        #     percept( rec_all, F.interpolate(data, rec_all.shape[2]) ).sum() +\
+        #     percept( rec_small, F.interpolate(data, rec_small.shape[2]) ).sum() +\
+        #     percept( rec_part, F.interpolate(crop_image_by_part(data, part), rec_part.shape[2]) ).sum()
+        loss = loss_aug +\
             percept( rec_all, F.interpolate(data, rec_all.shape[2]) ).sum() +\
             percept( rec_small, F.interpolate(data, rec_small.shape[2]) ).sum() +\
             percept( rec_part, F.interpolate(crop_image_by_part(data, part), rec_part.shape[2]) ).sum()
+        
        #  err = F.binary_cross_entropy(torch.ones_like([torch.Tensor(datas) for datas in data]),data)
        #  err.requires_grad_(True)
         loss.backward()
+       # print("real success!")
         return loss.mean().item(), rec_all, rec_small, rec_part
     else:
-        features, pred = net(data, data_rf="fake")
+        features, _ = net(data, data_rf="fake")
         y = fc(features)
         # EstimatorCV.update_CV(features.detach(), label)
         feature_num = 512
@@ -212,14 +218,14 @@ def train_d(net, data, fc, ratio, label, data_rf):
         ISDALoss_2 = ISDALoss(feature_num, class_num)
         isda_aug_y = ISDALoss_2.isda_aug(fc, features, y, label, Covariance.detach(), ratio)
         loss_aug = criteria(isda_aug_y, label)
-        loss = loss_aug + F.relu(torch.rand_like(pred) * 0.2 +0.8 + pred).mean()
+        loss = loss_aug
         loss.backward()
         # err = F.relu( torch.rand_like(pred) * 0.2 + 0.8 + pred).mean()
         #err = F.binary_cross_entropy_with_logits(pred, torch.zeros_like(pred))
       #  err = F.binary_cross_entropy(torch.zeros_like(torch.Tensor(data)),data)
       #  err.requires_grad_(True)
         #err.backward()
-        return loss.mean().item()
+        return loss_aug.mean().item()
         
 
 def train(args):
@@ -303,6 +309,19 @@ def train(args):
 
     fixed_noise = torch.FloatTensor(8, nz).normal_(0, 1).to(device)
 
+    # noise_z = torch.FloatTensor(8, nz).normal_(0, 1)
+    # noisetensor = torch.Tensor(8, nz)
+    # noise_zin = torch.nn.init.uniform_(tensor=noisetensor, a=-1, b=1)
+    # noise_zsig = torch.nn.init.constant_(tensor=noisetensor, val=0.2)
+    # fixed_noise = torch.add(noise_zin, torch.mul(noise_z, noise_zsig)).to(device)
+    # noise_z = torch.FloatTensor(8, nz).normal_(0, 1)
+    # noisetensor = torch.Tensor(8, nz)
+    # noise_zin = torch.nn.init.uniform_(tensor=noisetensor,a=-0.1, b=0.1)
+    # noise_zsig = torch.nn.init.constant_(tensor=noisetensor, val=0.90)
+    # noise_zuni = torch.ones(8, nz) - noise_zsig
+    # fixed_noise = torch.add(torch.mul(noise_zuni, noise_zin), torch.mul(noise_z, noise_zsig)).to(device)
+    # fixed_noise = torch.add(noise_zin, torch.mul(noise_z, noise_zsig)).to(device)
+    #fixed_noise = torch.FloatTensor(8, nz).normal_(0, 1).to(device)
     if multi_gpu:
         netG = nn.DataParallel(netG.cuda())
         netD = nn.DataParallel(netD.cuda())
@@ -328,6 +347,18 @@ def train(args):
         #ratio = iteration / total_iterations
         ratio = 1.0
         noise = torch.Tensor(current_batch_size, nz).normal_(0, 1).to(device)
+
+        # noise_z = torch.FloatTensor(current_batch_size, nz).normal_(0, 1)
+        # noisetensor = torch.Tensor(current_batch_size, nz)
+        # noise_zin = torch.nn.init.uniform_(tensor=noisetensor, a=-1, b=1)
+        # noise_zsig = torch.nn.init.constant_(tensor=noisetensor, val=0.2)
+        # noise = torch.add(noise_zin, torch.mul(noise_z, noise_zsig)).to(device)
+        # noise_z = torch.FloatTensor(current_batch_size, nz).normal_(0, 1)
+        # noisetensor = torch.Tensor(current_batch_size, nz)
+        # noise_zin = torch.nn.init.uniform_(tensor=noisetensor, a=-0.1, b=0.1)
+        # noise_zsig = torch.nn.init.constant_(tensor=noisetensor, val=0.90)
+        # noise_zuni = torch.ones(current_batch_size, nz) - noise_zsig
+        # noise = torch.add(torch.mul(noise_zuni,noise_zin), torch.mul(noise_z, noise_zsig)).to(device)
 
        # noise = torch.Tensor(current_batch_size, nz).normal_(0, 1).to(device)
         fake_images = netG(noise)
@@ -356,7 +387,7 @@ def train(args):
         ## 3. train Generator
         netG.zero_grad()
 
-        feature_g, pred = netD(fake_images, data_rf="fake")
+        feature_g, _ = netD(fake_images, data_rf="fake")
         lable_tenor = torch.randn([current_batch_size, ])
         lable_tenor = lable_tenor.long()
         label = torch.zeros_like(torch.tensor(lable_tenor)).cuda()
@@ -366,7 +397,7 @@ def train(args):
         ISDALoss_3 = ISDALoss(feature_num, class_num)
         isda_aug_y = ISDALoss_3.isda_aug(fc, feature_g, y, label, Covariance.detach(), ratio)
         # isda_aug_y = ISDALoss.isda_aug(fc, feature_g, y, label, CoVariance.detach(), ratio)
-        loss_aug = - criteria(isda_aug_y, label)- pred.mean()
+        loss_aug = - criteria(isda_aug_y, label)
         loss_aug.backward()
 
 
@@ -408,13 +439,13 @@ def train(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='region gan')
 
-    parser.add_argument('--path', type=str, default='D:/Z-kobehsegu/Datasets/ASA-GAN+Datasets/100-shot-obama/img', help='path of resource dataset, should be a folder that has one or many sub image folders inside')
+    parser.add_argument('--path', type=str, default='./datasets/100-shot-panda/img', help='path of resource dataset, should be a folder that has one or many sub image folders inside')
     parser.add_argument('--cuda', type=int, default=0, help='index of gpu to use')
-    parser.add_argument('--name', type=str, default='Test', help='experiment name')
+    parser.add_argument('--name', type=str, default='Panda256', help='experiment name')
     parser.add_argument('--iter', type=int, default=100000, help='number of iterations')
     parser.add_argument('--start_iter', type=int, default=0, help='the iteration to start training')
     parser.add_argument('--batch_size', type=int, default=8, help='mini batch number of images')
-    parser.add_argument('--im_size', type=int, default=512, help='image resolution')
+    parser.add_argument('--im_size', type=int, default=256, help='image resolution')
     parser.add_argument('--ckpt', type=str, default='None', help='checkpoint weight path if have one')
 
 
