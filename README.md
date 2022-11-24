@@ -19,7 +19,7 @@ The results and models will be automatically saved in /train_resutls folder.
 Fell free to contact me at kobeshegu@gmail.com if you have any questions or advices, thanks!
 
 ## Acknowledgment
-Our code is built upon the excellent codebase of [FastGAN](https://github.com/odegeasslbc/FastGAN-pytorch), we thank a lot for their work.
+Our code is built upon the excellent codebase of [FastGAN](https://github.com/odegeasslbc/FastGAN-pytorch) and [ISDA](https://github.com/blackfeather-wang/ISDA-for-Deep-Networks), we thank a lot for their works.
 
 ## BibTeX
 Coming soon
