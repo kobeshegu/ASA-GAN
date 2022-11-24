@@ -3,8 +3,8 @@
 ![image](./assets/teaser.png)
 
 > **Adversarial Semantic Augmentation for Training GANs under Limited Data** <br>
-> Mengping Yang, Zhe Wang, Ziqiu Chi, Dongdong Li, Wenli Du <br>
-> paper will be available soon
+> Mengping Yang, Zhe Wang, Ziqiu Chi, Dongdong Li, Wenli Du<br>
+> paper will be available once accepted
 
 
 ## Abstract 
@@ -22,5 +22,5 @@ Fell free to contact me at kobeshegu@gmail.com if you have any questions or advi
 Our code is built upon the excellent codebase of [FastGAN](https://github.com/odegeasslbc/FastGAN-pytorch), we thank a lot for their work.
 
 ## BibTeX
-Coming soon.
+Coming soon
 
